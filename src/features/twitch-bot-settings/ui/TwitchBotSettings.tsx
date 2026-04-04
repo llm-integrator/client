@@ -11,10 +11,15 @@ import {
   Typography,
 } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
-import type { InternalUserProfile, TwitchBotConnectionSnapshot } from '@/shared/api';
+import type {
+  InternalUserProfile,
+  LlmUsageCalendarMonthSummary,
+  TwitchBotConnectionSnapshot,
+} from '@/shared/api';
 import {
   connectTwitchBot,
   disconnectTwitchBot,
+  getLlmUsageCalendarMonth,
   getTwitchBotState,
   updateBotAutoConnect,
   updateBotPrompt,
@@ -30,6 +35,31 @@ const runtimeLabels: Record<TwitchBotConnectionSnapshot['runtimeStatus'], string
   error: 'Ошибка',
 };
 
+const tokenFormatter = new Intl.NumberFormat('ru-RU');
+const usdFormatter = new Intl.NumberFormat('ru-RU', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 4,
+  maximumFractionDigits: 6,
+});
+
+function formatTokens(value: number): string {
+  return tokenFormatter.format(value);
+}
+
+function formatUsd(value: number): string {
+  return usdFormatter.format(value);
+}
+
+function formatUtcDate(value: string): string {
+  return new Intl.DateTimeFormat('ru-RU', {
+    timeZone: 'UTC',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
 type Props = {
   user: InternalUserProfile;
   onLogout: () => void;
@@ -37,6 +67,11 @@ type Props = {
 
 export function TwitchBotSettings({ user, onLogout }: Props) {
   const [snapshot, setSnapshot] = useState<TwitchBotConnectionSnapshot | null>(null);
+  const [usageSummary, setUsageSummary] = useState<LlmUsageCalendarMonthSummary | null>(
+    null,
+  );
+  const [usageLoading, setUsageLoading] = useState(true);
+  const [usageError, setUsageError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [promptSaving, setPromptSaving] = useState(false);
@@ -50,20 +85,36 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
     });
   }, [form]);
 
+  const refreshUsage = useCallback(async () => {
+    setUsageError(null);
+    const next = await getLlmUsageCalendarMonth();
+    setUsageSummary(next);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         setLoading(true);
-        await refresh();
+        setUsageLoading(true);
+        await Promise.all([refresh(), refreshUsage()]);
+      } catch (error) {
+        if (!cancelled) {
+          const nextError =
+            error instanceof Error ? error.message : 'Не удалось загрузить данные.';
+          setUsageError(nextError);
+        }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setUsageLoading(false);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [refresh]);
+  }, [refresh, refreshUsage]);
 
   const runAction = async (fn: () => Promise<TwitchBotConnectionSnapshot>) => {
     setActionLoading(true);
@@ -185,6 +236,37 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
             />
           </Form.Item>
         </Form>
+      </Card>
+
+      <Card title="Расход LLM за текущий месяц (UTC)" loading={usageLoading}>
+        {usageError ? (
+          <Alert type="error" message={usageError} showIcon />
+        ) : usageSummary ? (
+          <Descriptions column={1} size="small">
+            <Descriptions.Item label="Период">
+              {formatUtcDate(usageSummary.period.start)} -{' '}
+              {formatUtcDate(usageSummary.period.endExclusive)} (не включая конец)
+            </Descriptions.Item>
+            <Descriptions.Item label="Запросов">
+              {formatTokens(usageSummary.requestCount)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Prompt tokens">
+              {formatTokens(usageSummary.totals.promptTokens)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Completion tokens">
+              {formatTokens(usageSummary.totals.completionTokens)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Всего токенов">
+              {formatTokens(usageSummary.totals.totalTokens)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Себестоимость провайдера">
+              {formatUsd(usageSummary.totals.providerCostUsd)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Стоимость с маржой">
+              {formatUsd(usageSummary.totals.billableCostUsd)}
+            </Descriptions.Item>
+          </Descriptions>
+        ) : null}
       </Card>
     </Space>
   );

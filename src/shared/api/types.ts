@@ -30,6 +30,25 @@ export interface TwitchBotConnectionSnapshot {
   lastPartAt?: string | null;
 }
 
+export interface LlmUsageTotals {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  providerCostUsd: number;
+  billableCostUsd: number;
+}
+
+export interface LlmUsagePeriod {
+  start: string;
+  endExclusive: string;
+}
+
+export interface LlmUsageCalendarMonthSummary {
+  period: LlmUsagePeriod;
+  requestCount: number;
+  totals: LlmUsageTotals;
+}
+
 export interface TwitchAuthStartResponse {
   authorizeUrl: string;
 }
