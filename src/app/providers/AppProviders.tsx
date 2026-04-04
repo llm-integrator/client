@@ -1,13 +1,11 @@
-import { App as AntdApp, ConfigProvider } from 'antd';
-import ruRU from 'antd/locale/ru_RU';
+import type { ReactNode } from 'react';
 import { BrowserRouter } from 'react-router-dom';
+import { ThemeProvider } from '@/shared/lib/theme';
 
-export function AppProviders({ children }: { children: React.ReactNode }) {
+export function AppProviders({ children }: { children: ReactNode }) {
   return (
-    <ConfigProvider locale={ruRU}>
-      <AntdApp>
-        <BrowserRouter>{children}</BrowserRouter>
-      </AntdApp>
-    </ConfigProvider>
+    <ThemeProvider>
+      <BrowserRouter>{children}</BrowserRouter>
+    </ThemeProvider>
   );
 }
