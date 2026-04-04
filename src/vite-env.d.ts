@@ -1,7 +1,8 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_ROOT_API_URL: string;
+  /** Base URL for root API: same-origin path in dev (e.g. `/api`) or full origin in prod. */
+  readonly VITE_AP_URL?: string;
 }
 
 interface ImportMeta {
