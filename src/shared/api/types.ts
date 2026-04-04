@@ -34,8 +34,7 @@ export interface LlmUsageTotals {
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
-  providerCostUsd: number;
-  billableCostUsd: number;
+  costUsd: number;
 }
 
 export interface LlmUsagePeriod {

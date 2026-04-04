@@ -1,7 +1,6 @@
 import type {
   HealthResponse,
   InternalUserProfile,
-  LlmUsageCalendarMonthSummary,
   TwitchAuthStartResponse,
   TwitchBotConnectionSnapshot,
   UpdateAutoConnectRequest,
@@ -28,12 +27,6 @@ export function getMe(): Promise<InternalUserProfile> {
 
 export function getTwitchBotState(): Promise<TwitchBotConnectionSnapshot> {
   return rootFetch<TwitchBotConnectionSnapshot>('/me/twitch-bot', {
-    method: 'GET',
-  });
-}
-
-export function getLlmUsageCalendarMonth(): Promise<LlmUsageCalendarMonthSummary> {
-  return rootFetch<LlmUsageCalendarMonthSummary>('/me/llm-usage/calendar-month', {
     method: 'GET',
   });
 }
