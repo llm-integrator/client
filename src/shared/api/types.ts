@@ -36,6 +36,7 @@ export interface LlmUsageTotals {
   completionTokens: number;
   totalTokens: number;
   costUsd: number;
+  providerCostUsd: number;
 }
 
 export interface LlmUsagePeriod {
@@ -55,6 +56,7 @@ export interface TwitchAuthStartResponse {
 
 export interface TwitchAuthCallbackResponse {
   authenticated: boolean;
+  sessionToken: string;
   returnTo: string | null;
   user: InternalUserProfile;
   connection: TwitchBotConnectionSnapshot;

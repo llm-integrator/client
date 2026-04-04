@@ -28,11 +28,12 @@ export async function rootFetch<T>(
 ): Promise<T> {
   const base = getRootApiBaseUrl();
   const url = `${base}${path.startsWith('/') ? path : `/${path}`}`;
+  const token = sessionStorage.getItem('root_session');
   const res = await fetch(url, {
     ...init,
-    credentials: 'include',
     headers: {
       ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init?.headers,
     },
   });

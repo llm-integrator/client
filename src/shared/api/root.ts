@@ -3,10 +3,11 @@ import type {
   InternalUserProfile,
   TwitchAuthStartResponse,
   TwitchBotConnectionSnapshot,
-  UpdateAutoConnectRequest,
+  UpdateAutoConnectRequest, 
   UpdateUserPromptRequest,
 } from './types';
 import { rootFetch } from './http';
+import { clearSessionToken } from './session-storage';
 
 export function getHealth(): Promise<HealthResponse> {
   return rootFetch<HealthResponse>('/health', { method: 'GET' });
@@ -61,6 +62,7 @@ export function updateBotAutoConnect(
   });
 }
 
-export function logout(): Promise<void> {
-  return rootFetch<void>('/auth/logout', { method: 'POST' });
+export async function logout(): Promise<void> {
+  await rootFetch<void>('/auth/logout', { method: 'POST' });
+  clearSessionToken();
 }

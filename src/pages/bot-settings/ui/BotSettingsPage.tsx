@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { RequireAuth } from '@/features/auth-guard';
 import { TwitchBotSettings } from '@/features/twitch-bot-settings';
-import { logout } from '@/shared/api';
+import { clearSessionToken, logout } from '@/shared/api';
 import { ROUTES } from '@/shared/config';
 import { useSession } from '@/shared/lib/auth';
 
@@ -13,7 +13,7 @@ function BotSettingsContent() {
     try {
       await logout();
     } catch {
-      /* still leave UI */
+      clearSessionToken();
     }
     navigate(ROUTES.login, { replace: true });
   };
