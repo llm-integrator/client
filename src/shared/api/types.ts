@@ -6,6 +6,7 @@ export interface InternalUserProfile {
   login: string;
   displayName: string;
   profileImageUrl?: string | null;
+  isAdmin: boolean;
 }
 
 export interface TwitchBotConnectionSnapshot {
