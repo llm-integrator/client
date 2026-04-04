@@ -8,6 +8,15 @@ This document is the **source of truth** for the client repository. Agents and d
 |------|------------|
 | UI | **React** |
 | Language | **TypeScript** (strict typing; avoid `any` unless justified) |
+
+### TypeScript and anti-patterns
+
+- **Do not use type assertions** (`as`) to silence the compiler. Prefer narrowing (type guards, `unknown` + checks), `satisfies` for shape checks, and well-typed APIs. Avoid non-null assertions (`!`) except where a guard is impossible and the invariant is documented.
+- Avoid empty catches, silent failures, and “escape hatches” that hide real typing or API contract issues.
+
+### Lint before you finish
+
+After substantive edits in this repository, run **`npm run lint`** from the `client/` root and fix all issues. Agents should treat a clean lint run as part of the definition of done for this submodule.
 | Build / dev server | **Vite** |
 | Components & styling | **Ant Design** (`antd`); theming and tokens per project conventions |
 
