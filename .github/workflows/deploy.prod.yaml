@@ -40,7 +40,7 @@ jobs:
   
       - name: Cleanup workspace (keep build only)
         run: |
-          find . -mindepth 1 -maxdepth 1 ! -name build ! -name netlify.toml -exec rm -rf {} +
+          find . -mindepth 1 -maxdepth 1 ! -name dist ! -name netlify.toml -exec rm -rf {} +
   
       - name: Deploy to Netlify
         run: netlify deploy --dir=dist --prod --message "${{ steps.commit.outputs.message }}"
