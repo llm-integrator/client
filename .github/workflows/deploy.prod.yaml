@@ -4,7 +4,7 @@ run-name: '🛠️ Deploy'
 on:
   push:
     branches:
-      - SIT
+      - main
   workflow_dispatch:
 
 jobs:
