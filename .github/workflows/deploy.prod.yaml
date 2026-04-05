@@ -1,0 +1,51 @@
+name: Deploy
+run-name: '🛠️ Deploy'
+
+on:
+  push:
+    branches:
+      - SIT
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      VITE_API_URL: ${{ secrets.API_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build project
+        run: pnpm run build
+
+      - name: Install Netlify CLI
+        run: npm install netlify-cli -g
+  
+      - name: Get last commit message
+        id: commit
+        run: echo "::set-output name=message::$(git log --format=%B -n 1)"
+  
+      - name: Cleanup workspace (keep build only)
+        run: |
+          find . -mindepth 1 -maxdepth 1 ! -name build ! -name netlify.toml -exec rm -rf {} +
+  
+      - name: Deploy to Netlify
+        run: netlify deploy --dir=dist --prod --message "${{ steps.commit.outputs.message }}"
+        env:
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_ID }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_TOKEN }}
+  
+  

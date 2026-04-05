@@ -15,7 +15,7 @@ function normalizeBase(base: string): string {
 }
 
 export function getRootApiBaseUrl(): string {
-  const raw = import.meta.env.VITE_AP_URL;
+  const raw = import.meta.env.VITE_API_URL;
   if (typeof raw === 'string' && raw.trim() !== '') {
     return normalizeBase(raw);
   }

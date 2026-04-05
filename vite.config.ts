@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const apiBase = '/api';
-  const rootTarget = env.VITE_AP_URL;
+  const rootTarget = env.VITE_API_URL;
 
   const proxy =
     apiBase.startsWith('/') && apiBase.length > 1
