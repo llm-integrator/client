@@ -164,20 +164,24 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
           <Descriptions.Item label="Бот включён">{snapshot.enabled ? 'Да' : 'Нет'}</Descriptions.Item>
         </Descriptions>
         <Space style={{ marginTop: 16 }}>
-          <Button
-            type="primary"
-            loading={actionLoading}
-            onClick={() => runAction(connectTwitchBot)}
-          >
-            Подключить
-          </Button>
-          <Button
-            danger
-            loading={actionLoading}
-            onClick={() => runAction(disconnectTwitchBot)}
-          >
-            Отключить
-          </Button>
+          {snapshot.runtimeStatus !== 'connected' ? (
+            <Button
+              type="primary"
+              loading={actionLoading}
+              onClick={() => runAction(connectTwitchBot)}
+            >
+              Подключить
+            </Button>
+          ) : null}
+          {snapshot.runtimeStatus === 'connected' ? (
+            <Button
+              danger
+              loading={actionLoading}
+              onClick={() => runAction(disconnectTwitchBot)}
+            >
+              Отключить
+            </Button>
+          ) : null}
         </Space>
       </Card>
 
