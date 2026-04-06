@@ -8,6 +8,7 @@ import {
   Input,
   Space,
   Switch,
+  Tag,
   Typography,
 } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
@@ -29,6 +30,15 @@ const runtimeLabels: Record<TwitchBotConnectionSnapshot['runtimeStatus'], string
   stream_offline: 'Стрим офлайн',
   error: 'Ошибка',
 };
+
+function formatFetchedAt(value: string | null | undefined): string {
+  if (!value) {
+    return '—';
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString('ru-RU');
+}
 
 type Props = {
   user: InternalUserProfile;
@@ -162,6 +172,33 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
             {snapshot.streamLive ? 'В эфире' : 'Не в эфире'}
           </Descriptions.Item>
           <Descriptions.Item label="Бот включён">{snapshot.enabled ? 'Да' : 'Нет'}</Descriptions.Item>
+          <Descriptions.Item label="Метаданные трансляции">
+            {snapshot.broadcast
+              ? snapshot.broadcast.isLive
+                ? 'Получены для активного стрима'
+                : 'Последняя проверка: стрим офлайн'
+              : 'Ещё не загружены'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Название стрима">
+            {snapshot.broadcast?.title ?? '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Категория">
+            {snapshot.broadcast?.categoryName ?? '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Теги">
+            {snapshot.broadcast && snapshot.broadcast.tags.length > 0 ? (
+              <Space size={[4, 8]} wrap>
+                {snapshot.broadcast.tags.map((tag) => (
+                  <Tag key={tag}>{tag}</Tag>
+                ))}
+              </Space>
+            ) : (
+              '—'
+            )}
+          </Descriptions.Item>
+          <Descriptions.Item label="Обновлено">
+            {formatFetchedAt(snapshot.broadcast?.fetchedAt)}
+          </Descriptions.Item>
         </Descriptions>
         <Space style={{ marginTop: 16 }}>
           {snapshot.runtimeStatus !== 'connected' ? (

@@ -9,6 +9,14 @@ export interface InternalUserProfile {
   isAdmin: boolean;
 }
 
+export interface TwitchBroadcastMetadata {
+  isLive: boolean;
+  title: string | null;
+  categoryName: string | null;
+  tags: string[];
+  fetchedAt: string;
+}
+
 export interface TwitchBotConnectionSnapshot {
   userId: string;
   channelLogin: string;
@@ -29,6 +37,7 @@ export interface TwitchBotConnectionSnapshot {
   lastStreamEndedAt?: string | null;
   lastJoinAt?: string | null;
   lastPartAt?: string | null;
+  broadcast: TwitchBroadcastMetadata | null;
 }
 
 export interface LlmUsageTotals {
