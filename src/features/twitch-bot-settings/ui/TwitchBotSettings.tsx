@@ -1,5 +1,6 @@
 import {
   Alert,
+  App,
   Button,
   Card,
   Descriptions,
@@ -7,7 +8,6 @@ import {
   Form,
   Input,
   InputNumber,
-  message,
   Radio,
   Space,
   Switch,
@@ -85,6 +85,7 @@ type Props = {
 };
 
 export function TwitchBotSettings({ user, onLogout }: Props) {
+  const { message } = App.useApp();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = parseTab(searchParams.get('tab'));
 
