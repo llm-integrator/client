@@ -3,7 +3,8 @@ import type {
   InternalUserProfile,
   TwitchAuthStartResponse,
   TwitchBotConnectionSnapshot,
-  UpdateAutoConnectRequest, 
+  UpdateAutoConnectRequest,
+  UpdateSelfReminderRequest,
   UpdateUserPromptRequest,
 } from './types';
 import { rootFetch } from './http';
@@ -57,6 +58,15 @@ export function updateBotAutoConnect(
   body: UpdateAutoConnectRequest,
 ): Promise<TwitchBotConnectionSnapshot> {
   return rootFetch<TwitchBotConnectionSnapshot>('/me/twitch-bot/auto-connect', {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
+export function updateBotSelfReminder(
+  body: UpdateSelfReminderRequest,
+): Promise<TwitchBotConnectionSnapshot> {
+  return rootFetch<TwitchBotConnectionSnapshot>('/me/twitch-bot/self-reminder', {
     method: 'PUT',
     body: JSON.stringify(body),
   });

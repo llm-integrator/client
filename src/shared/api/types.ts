@@ -32,6 +32,12 @@ export interface TwitchBotConnectionSnapshot {
     | 'error';
   streamLive: boolean;
   prompt: string;
+  selfReminderEnabled: boolean;
+  selfReminderIntervalSeconds: number;
+  selfReminderMode: 'text' | 'llm_prompt';
+  selfReminderText: string;
+  selfReminderPrompt: string;
+  lastBotMessageAt?: string | null;
   lastError?: string | null;
   lastStreamLiveAt?: string | null;
   lastStreamEndedAt?: string | null;
@@ -77,6 +83,14 @@ export interface UpdateUserPromptRequest {
 
 export interface UpdateAutoConnectRequest {
   autoConnectOnStreamStart: boolean;
+}
+
+export interface UpdateSelfReminderRequest {
+  selfReminderEnabled: boolean;
+  selfReminderIntervalSeconds: number;
+  selfReminderMode: 'text' | 'llm_prompt';
+  selfReminderText: string;
+  selfReminderPrompt: string;
 }
 
 export interface HealthResponse {
