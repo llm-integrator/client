@@ -7,6 +7,7 @@ import {
   Form,
   Input,
   InputNumber,
+  message,
   Radio,
   Space,
   Switch,
@@ -57,6 +58,10 @@ function formatFetchedAt(value: string | null | undefined): string {
 
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString('ru-RU');
+}
+
+function saveErrorText(error: unknown): string {
+  return error instanceof Error ? error.message : 'Произошла ошибка.';
 }
 
 function getReminderFormValues(snapshot: TwitchBotConnectionSnapshot) {
@@ -167,6 +172,9 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
       const next = await updateBotPrompt({ prompt: values.prompt });
       setSnapshot(next);
       reminderForm.setFieldsValue(getReminderFormValues(next));
+      message.success('Промпт сохранён.');
+    } catch (error) {
+      message.error(`Не удалось сохранить: ${saveErrorText(error)}`);
     } finally {
       setPromptSaving(false);
     }
@@ -180,6 +188,9 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
       });
       setSnapshot(next);
       reminderForm.setFieldsValue(getReminderFormValues(next));
+      message.success('Настройка автоподключения сохранена.');
+    } catch (error) {
+      message.error(`Не удалось сохранить: ${saveErrorText(error)}`);
     } finally {
       setActionLoading(false);
     }
@@ -199,6 +210,9 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
       setSnapshot(next);
       reminderForm.setFieldsValue(getReminderFormValues(next));
       promptForm.setFieldsValue({ prompt: next.prompt });
+      message.success('Настройки напоминаний сохранены.');
+    } catch (error) {
+      message.error(`Не удалось сохранить: ${saveErrorText(error)}`);
     } finally {
       setReminderSaving(false);
     }
@@ -253,16 +267,17 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
             key: 'connection',
             label: 'Подключение',
             children: (
-              <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                <Card
-                  title={
-                    <FieldLabelWithHelp
-                      label="Состояние и канал"
-                      helpTitle={help.channelStatus.title}
-                      helpContent={help.channelStatus.content}
-                    />
-                  }
-                >
+              <Card
+                style={{ width: '100%' }}
+                title={
+                  <FieldLabelWithHelp
+                    label="Состояние и подключение"
+                    helpTitle={help.channelStatus.title}
+                    helpContent={help.channelStatus.content}
+                  />
+                }
+              >
+                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                   <Descriptions column={1} size="small">
                     <Descriptions.Item label="Канал">
                       {snapshot.channelDisplayName} ({snapshot.channelLogin})
@@ -304,7 +319,7 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
                       {formatFetchedAt(snapshot.broadcast?.fetchedAt)}
                     </Descriptions.Item>
                   </Descriptions>
-                  <Space style={{ marginTop: 16 }} align="center" wrap>
+                  <Space align="center" wrap>
                     <FieldLabelWithHelp
                       label="Действия"
                       helpTitle={help.connectActions.title}
@@ -316,7 +331,7 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
                         loading={actionLoading}
                         onClick={() => runAction(connectTwitchBot)}
                       >
-                        Подключить
+                        Ручное подключение
                       </Button>
                     ) : null}
                     {snapshot.runtimeStatus === 'connected' ? (
@@ -329,11 +344,9 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
                       </Button>
                     ) : null}
                   </Space>
-                </Card>
-
-                <Card title="Автоподключение">
-                  <Form layout="vertical">
+                  <Form layout="vertical" style={{ marginBottom: 0 }}>
                     <Form.Item
+                      style={{ marginBottom: 0 }}
                       label={
                         <FieldLabelWithHelp
                           label="Автоподключение при старте стрима"
@@ -349,8 +362,8 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
                       />
                     </Form.Item>
                   </Form>
-                </Card>
-              </Space>
+                </Space>
+              </Card>
             ),
           },
           {
