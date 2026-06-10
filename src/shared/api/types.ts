@@ -34,6 +34,7 @@ export interface TwitchBotConnectionSnapshot {
   prompt: string;
   selfReminderEnabled: boolean;
   selfReminderIntervalSeconds: number;
+  selfReminderSkippedMessagesThreshold: number;
   selfReminderMode: 'text' | 'llm_prompt';
   selfReminderText: string;
   selfReminderPrompt: string;
@@ -88,6 +89,7 @@ export interface UpdateAutoConnectRequest {
 export interface UpdateSelfReminderRequest {
   selfReminderEnabled: boolean;
   selfReminderIntervalSeconds: number;
+  selfReminderSkippedMessagesThreshold: number;
   selfReminderMode: 'text' | 'llm_prompt';
   selfReminderText: string;
   selfReminderPrompt: string;

@@ -30,11 +30,21 @@ import { FieldLabelWithHelp } from '@/shared/ui/field-label-help';
 import {
   DEFAULT_SELF_REMINDER_INTERVAL_SECONDS,
   DEFAULT_SELF_REMINDER_PROMPT,
+  DEFAULT_SELF_REMINDER_SKIPPED_MESSAGES_THRESHOLD,
   DEFAULT_SELF_REMINDER_TEXT,
 } from '../lib/defaults';
 import { help } from '../lib/twitchBotSettingsHelp';
 
 const { Text } = Typography;
+
+type ReminderFormValues = {
+  selfReminderEnabled: boolean;
+  selfReminderIntervalSeconds: number;
+  selfReminderSkippedMessagesThreshold: number;
+  selfReminderMode: 'text' | 'llm_prompt';
+  selfReminderText: string;
+  selfReminderPrompt: string;
+};
 
 function parseTab(raw: string | null): 'connection' | 'llm' | 'behavior' {
   if (raw === 'llm' || raw === 'behavior') {
@@ -64,12 +74,23 @@ function saveErrorText(error: unknown): string {
   return error instanceof Error ? error.message : 'Произошла ошибка.';
 }
 
-function getReminderFormValues(snapshot: TwitchBotConnectionSnapshot) {
+function normalizeSelfReminderMode(
+  mode: TwitchBotConnectionSnapshot['selfReminderMode'] | undefined,
+): ReminderFormValues['selfReminderMode'] {
+  return mode === 'llm_prompt' ? 'llm_prompt' : 'text';
+}
+
+function getReminderFormValues(
+  snapshot: TwitchBotConnectionSnapshot,
+): ReminderFormValues {
   return {
     selfReminderEnabled: snapshot.selfReminderEnabled ?? false,
     selfReminderIntervalSeconds:
       snapshot.selfReminderIntervalSeconds ?? DEFAULT_SELF_REMINDER_INTERVAL_SECONDS,
-    selfReminderMode: (snapshot.selfReminderMode ?? 'text') as 'text' | 'llm_prompt',
+    selfReminderSkippedMessagesThreshold:
+      snapshot.selfReminderSkippedMessagesThreshold ??
+      DEFAULT_SELF_REMINDER_SKIPPED_MESSAGES_THRESHOLD,
+    selfReminderMode: normalizeSelfReminderMode(snapshot.selfReminderMode),
     selfReminderText: snapshot.selfReminderText?.trim()
       ? snapshot.selfReminderText
       : DEFAULT_SELF_REMINDER_TEXT,
@@ -96,13 +117,7 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
   const [promptSaving, setPromptSaving] = useState(false);
   const [reminderSaving, setReminderSaving] = useState(false);
   const [promptForm] = Form.useForm<{ prompt: string }>();
-  const [reminderForm] = Form.useForm<{
-    selfReminderEnabled: boolean;
-    selfReminderIntervalSeconds: number;
-    selfReminderMode: 'text' | 'llm_prompt';
-    selfReminderText: string;
-    selfReminderPrompt: string;
-  }>();
+  const [reminderForm] = Form.useForm<ReminderFormValues>();
 
   const reminderEnabledWatch = Form.useWatch('selfReminderEnabled', reminderForm);
   const reminderModeWatch = Form.useWatch('selfReminderMode', reminderForm);
@@ -204,6 +219,8 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
       const next = await updateBotSelfReminder({
         selfReminderEnabled: values.selfReminderEnabled,
         selfReminderIntervalSeconds: values.selfReminderIntervalSeconds,
+        selfReminderSkippedMessagesThreshold:
+          values.selfReminderSkippedMessagesThreshold,
         selfReminderMode: values.selfReminderMode,
         selfReminderText: values.selfReminderText ?? '',
         selfReminderPrompt: values.selfReminderPrompt ?? '',
@@ -441,6 +458,34 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
                           max={86400}
                           style={{ width: '100%', maxWidth: 280 }}
                           addonAfter="сек"
+                        />
+                      </Form.Item>
+
+                      <Form.Item
+                        name="selfReminderSkippedMessagesThreshold"
+                        label={
+                          <FieldLabelWithHelp
+                            label="Пропустить сообщений перед повтором"
+                            helpTitle={help.selfReminderSkippedMessagesThreshold.title}
+                            helpContent={help.selfReminderSkippedMessagesThreshold.content}
+                          />
+                        }
+                        rules={[
+                          { required: true, message: 'Укажите количество сообщений' },
+                          {
+                            type: 'number',
+                            min: 0,
+                            max: 1000,
+                            message: 'От 0 до 1000 сообщений',
+                          },
+                        ]}
+                        extra="0 — учитывать только интервал"
+                      >
+                        <InputNumber
+                          min={0}
+                          max={1000}
+                          style={{ width: '100%', maxWidth: 280 }}
+                          addonAfter="сообщ."
                         />
                       </Form.Item>
 

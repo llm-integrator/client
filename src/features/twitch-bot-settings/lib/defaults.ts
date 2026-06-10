@@ -4,3 +4,4 @@ export const DEFAULT_SELF_REMINDER_TEXT =
 export const DEFAULT_SELF_REMINDER_PROMPT =
   'Сгенерируй одно короткое дружелюбное напоминание, что бот на канале и готов ответить в чате. Без канцелярита, до 200 символов.';
 export const DEFAULT_SELF_REMINDER_INTERVAL_SECONDS = 900;
+export const DEFAULT_SELF_REMINDER_SKIPPED_MESSAGES_THRESHOLD = 20;
