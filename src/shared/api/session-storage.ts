@@ -1,20 +1,20 @@
 const SESSION_KEY = 'root_session';
 
 export function getSessionToken(): string | null {
-  return sessionStorage.getItem(SESSION_KEY);
+  return localStorage.getItem(SESSION_KEY);
 }
 
 export function setSessionToken(token: string): void {
-  sessionStorage.setItem(SESSION_KEY, token);
+  localStorage.setItem(SESSION_KEY, token);
 }
 
 export function clearSessionToken(): void {
-  sessionStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(SESSION_KEY);
 }
 
 /**
  * Reads the session token from the URL hash after an OAuth redirect
- * (`#root_session=<token>`), stores it in sessionStorage, and clears
+ * (`#root_session=<token>`), stores it in localStorage, and clears
  * the hash from the address bar so the token is not visible or bookmarkable.
  */
 export function consumeOAuthSessionFromHash(): void {

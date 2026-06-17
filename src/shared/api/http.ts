@@ -1,3 +1,5 @@
+import { getSessionToken } from './session-storage';
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -28,7 +30,7 @@ export async function rootFetch<T>(
 ): Promise<T> {
   const base = getRootApiBaseUrl();
   const url = `${base}${path.startsWith('/') ? path : `/${path}`}`;
-  const token = sessionStorage.getItem('root_session');
+  const token = getSessionToken();
   const res = await fetch(url, {
     ...init,
     headers: {
