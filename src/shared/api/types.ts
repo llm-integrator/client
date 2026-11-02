@@ -129,6 +129,25 @@ export interface UpdateSelfReminderRequest {
   selfReminderPrompt: string;
 }
 
+/** A user-facing LLM preset without generation implementation details. */
+export interface UserLlmPreset {
+  id: string;
+  name: string;
+  model: string;
+  description: string | null;
+  /** Used to filter choices; the UI does not need to display this value. */
+  isFree: boolean;
+}
+
+export interface CurrentUserLlmPresetsResponse {
+  currentPreset: UserLlmPreset;
+  items: UserLlmPreset[];
+}
+
+export interface UpdateCurrentUserLlmPresetRequest {
+  presetId: string;
+}
+
 export interface HealthResponse {
   service: string;
   status: string;

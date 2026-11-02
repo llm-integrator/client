@@ -1,10 +1,13 @@
 import type {
   HealthResponse,
   InternalUserProfile,
+  CurrentUserLlmPresetsResponse,
   TwitchAuthStartResponse,
   TwitchBotConnectionSnapshot,
+  UpdateCurrentUserLlmPresetRequest,
   UserBalanceQuery,
   UserBalanceSummary,
+  UserLlmPreset,
   UpdateAutoConnectRequest,
   UpdateSelfReminderRequest,
   UpdateUserPromptRequest,
@@ -57,6 +60,21 @@ export function getCurrentUserBalance(
   const suffix = query.toString() ? `?${query.toString()}` : '';
   return rootFetch<UserBalanceSummary>(`/me/balance${suffix}`, {
     method: 'GET',
+  });
+}
+
+export function getCurrentUserLlmPresets(): Promise<CurrentUserLlmPresetsResponse> {
+  return rootFetch<CurrentUserLlmPresetsResponse>('/me/llm-presets', {
+    method: 'GET',
+  });
+}
+
+export function updateCurrentUserLlmPreset(
+  body: UpdateCurrentUserLlmPresetRequest,
+): Promise<UserLlmPreset> {
+  return rootFetch<UserLlmPreset>('/me/llm-preset', {
+    method: 'PUT',
+    body: JSON.stringify(body),
   });
 }
 

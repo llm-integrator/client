@@ -8,6 +8,7 @@ import {
   Form,
   Input,
   InputNumber,
+  Modal,
   Radio,
   Space,
   Switch,
@@ -15,22 +16,25 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type {
   InternalUserProfile,
   TwitchBotConnectionSnapshot,
   UserBalanceQuery,
   UserBalanceSummary,
+  UserLlmPreset,
 } from '@/shared/api';
 import {
   connectTwitchBot,
   disconnectTwitchBot,
   getCurrentUserBalance,
+  getCurrentUserLlmPresets,
   getTwitchBotState,
   updateBotAutoConnect,
   updateBotPrompt,
   updateBotSelfReminder,
+  updateCurrentUserLlmPreset,
 } from '@/shared/api';
 import { FieldLabelWithHelp } from '@/shared/ui/field-label-help';
 import {
@@ -52,6 +56,8 @@ type ReminderFormValues = {
   selfReminderText: string;
   selfReminderPrompt: string;
 };
+
+type PresetFilter = 'all' | 'free' | 'paid';
 
 function parseTab(raw: string | null): 'connection' | 'llm' | 'behavior' | 'account' {
   if (raw === 'llm' || raw === 'behavior' || raw === 'account') {
@@ -112,6 +118,20 @@ function getReminderFormValues(
   };
 }
 
+function matchesPresetFilter(preset: UserLlmPreset, filter: PresetFilter): boolean {
+  if (filter === 'all') {
+    return true;
+  }
+  return filter === 'free' ? preset.isFree : !preset.isFree;
+}
+
+function getPresetFilter(value: string): PresetFilter | null {
+  if (value === 'all' || value === 'free' || value === 'paid') {
+    return value;
+  }
+  return null;
+}
+
 type Props = {
   user: InternalUserProfile;
   onLogout: () => void;
@@ -131,8 +151,17 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
   const [balanceSummary, setBalanceSummary] = useState<UserBalanceSummary | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(true);
   const [balanceError, setBalanceError] = useState<string | null>(null);
+  const [currentLlmPreset, setCurrentLlmPreset] = useState<UserLlmPreset | null>(null);
+  const [llmPresets, setLlmPresets] = useState<UserLlmPreset[]>([]);
+  const [presetLoading, setPresetLoading] = useState(false);
+  const [presetLoadError, setPresetLoadError] = useState<string | null>(null);
+  const [presetModalOpen, setPresetModalOpen] = useState(false);
+  const [presetSaving, setPresetSaving] = useState(false);
+  const [presetDraftId, setPresetDraftId] = useState<string | null>(null);
+  const [presetFilter, setPresetFilter] = useState<PresetFilter>('all');
   const [promptForm] = Form.useForm<{ prompt: string }>();
   const [reminderForm] = Form.useForm<ReminderFormValues>();
+  const lastLlmPresetRef = useRef<UserLlmPreset | null>(null);
 
   const reminderEnabledWatch = Form.useWatch('selfReminderEnabled', reminderForm);
   const reminderModeWatch = Form.useWatch('selfReminderMode', reminderForm);
@@ -161,6 +190,27 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
     }
   }, []);
 
+  const loadLlmPresets = useCallback(async () => {
+    setPresetLoading(true);
+    setPresetLoadError(null);
+    try {
+      const next = await getCurrentUserLlmPresets();
+      const previous = lastLlmPresetRef.current;
+      if (previous && !previous.isFree && next.currentPreset.isFree) {
+        message.info('Баланс исчерпан — выбран бесплатный пресет.');
+      }
+      lastLlmPresetRef.current = next.currentPreset;
+      setCurrentLlmPreset(next.currentPreset);
+      setLlmPresets(next.items);
+    } catch (error) {
+      setPresetLoadError(
+        error instanceof Error ? error.message : 'Не удалось загрузить пресеты.',
+      );
+    } finally {
+      setPresetLoading(false);
+    }
+  }, [message]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -188,6 +238,12 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
   useEffect(() => {
     void loadBalance({ page: 1, pageSize: 20 });
   }, [loadBalance]);
+
+  useEffect(() => {
+    if (activeTab === 'llm') {
+      void loadLlmPresets();
+    }
+  }, [activeTab, loadLlmPresets]);
 
   const onTabChange = (key: string) => {
     const nextKey = parseTab(key);
@@ -269,6 +325,37 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
       setReminderSaving(false);
     }
   };
+
+  const openPresetModal = () => {
+    if (!currentLlmPreset) {
+      return;
+    }
+    setPresetDraftId(currentLlmPreset.id);
+    setPresetFilter('all');
+    setPresetModalOpen(true);
+  };
+
+  const saveLlmPreset = async () => {
+    if (!presetDraftId) {
+      return;
+    }
+    setPresetSaving(true);
+    try {
+      const next = await updateCurrentUserLlmPreset({ presetId: presetDraftId });
+      lastLlmPresetRef.current = next;
+      setCurrentLlmPreset(next);
+      setPresetModalOpen(false);
+      message.success('Пресет LLM сохранён.');
+    } catch (error) {
+      message.error(`Не удалось сохранить пресет: ${saveErrorText(error)}`);
+    } finally {
+      setPresetSaving(false);
+    }
+  };
+
+  const visibleLlmPresets = llmPresets.filter((preset) =>
+    matchesPresetFilter(preset, presetFilter),
+  );
 
   if (loading) {
     return <Card loading />;
@@ -433,28 +520,54 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
             key: 'llm',
             label: 'LLM',
             children: (
-              <Card title="Ответы модели">
-                <Form form={promptForm} layout="vertical">
-                  <Form.Item
-                    name="prompt"
-                    label={
-                      <FieldLabelWithHelp
-                        label="Промпт для LLM"
-                        helpTitle={help.llmPrompt.title}
-                        helpContent={help.llmPrompt.content}
-                      />
-                    }
-                    rules={[{ required: true, message: 'Введите промпт' }]}
-                  >
-                    <Input.TextArea rows={8} />
-                  </Form.Item>
-                  <Form.Item>
-                    <Button type="primary" onClick={onSavePrompt} loading={promptSaving}>
-                      Сохранить промпт
+              <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                <Card
+                  title="Выбранный пресет"
+                  loading={presetLoading}
+                  extra={
+                    <Button disabled={!currentLlmPreset} onClick={openPresetModal}>
+                      Изменить
                     </Button>
-                  </Form.Item>
-                </Form>
-              </Card>
+                  }
+                >
+                  {presetLoadError ? (
+                    <Alert type="warning" message={presetLoadError} showIcon />
+                  ) : currentLlmPreset ? (
+                    <Space direction="vertical" size={4}>
+                      <Text strong>{currentLlmPreset.name}</Text>
+                      <Text type="secondary">{currentLlmPreset.model}</Text>
+                      {currentLlmPreset.description ? (
+                        <Text type="secondary">{currentLlmPreset.description}</Text>
+                      ) : null}
+                    </Space>
+                  ) : (
+                    <Text type="secondary">Пресет пока недоступен.</Text>
+                  )}
+                </Card>
+
+                <Card title="Ответы модели">
+                  <Form form={promptForm} layout="vertical">
+                    <Form.Item
+                      name="prompt"
+                      label={
+                        <FieldLabelWithHelp
+                          label="Промпт для LLM"
+                          helpTitle={help.llmPrompt.title}
+                          helpContent={help.llmPrompt.content}
+                        />
+                      }
+                      rules={[{ required: true, message: 'Введите промпт' }]}
+                    >
+                      <Input.TextArea rows={8} />
+                    </Form.Item>
+                    <Form.Item>
+                      <Button type="primary" onClick={onSavePrompt} loading={promptSaving}>
+                        Сохранить промпт
+                      </Button>
+                    </Form.Item>
+                  </Form>
+                </Card>
+              </Space>
             ),
           },
           {
@@ -618,6 +731,77 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
           },
         ]}
       />
+
+      <Modal
+        title="Выбор LLM-пресета"
+        open={presetModalOpen}
+        destroyOnClose
+        onCancel={() => setPresetModalOpen(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setPresetModalOpen(false)}>
+            Отменить
+          </Button>,
+          <Button
+            key="save"
+            type="primary"
+            disabled={!presetDraftId}
+            loading={presetSaving}
+            onClick={() => void saveLlmPreset()}
+          >
+            Сохранить
+          </Button>,
+        ]}
+      >
+        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Radio.Group
+            value={presetFilter}
+            disabled={presetSaving}
+            onChange={(event) => {
+              const nextFilter = getPresetFilter(event.target.value);
+              if (nextFilter) {
+                setPresetFilter(nextFilter);
+              }
+            }}
+          >
+            <Radio.Button value="all">Все</Radio.Button>
+            <Radio.Button value="free">Бесплатные</Radio.Button>
+            <Radio.Button value="paid">Платные</Radio.Button>
+          </Radio.Group>
+
+          {visibleLlmPresets.length === 0 ? (
+            <Text type="secondary">Подходящих пресетов нет.</Text>
+          ) : (
+            visibleLlmPresets.map((preset) => (
+              <Card
+                key={preset.id}
+                size="small"
+                style={
+                  presetDraftId === preset.id
+                    ? { borderColor: 'var(--ant-color-primary)' }
+                    : undefined
+                }
+                title={<Text strong>{preset.name}</Text>}
+                extra={
+                  <Button
+                    type={presetDraftId === preset.id ? 'primary' : 'default'}
+                    disabled={presetSaving}
+                    onClick={() => setPresetDraftId(preset.id)}
+                  >
+                    {presetDraftId === preset.id ? 'Выбрано' : 'Выбрать'}
+                  </Button>
+                }
+              >
+                <Space direction="vertical" size={4}>
+                  <Text type="secondary">{preset.model}</Text>
+                  {preset.description ? (
+                    <Text type="secondary">{preset.description}</Text>
+                  ) : null}
+                </Space>
+              </Card>
+            ))
+          )}
+        </Space>
+      </Modal>
     </Space>
   );
 }
