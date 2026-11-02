@@ -17,10 +17,16 @@ import {
 } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { InternalUserProfile, TwitchBotConnectionSnapshot } from '@/shared/api';
+import type {
+  InternalUserProfile,
+  TwitchBotConnectionSnapshot,
+  UserBalanceQuery,
+  UserBalanceSummary,
+} from '@/shared/api';
 import {
   connectTwitchBot,
   disconnectTwitchBot,
+  getCurrentUserBalance,
   getTwitchBotState,
   updateBotAutoConnect,
   updateBotPrompt,
@@ -34,6 +40,7 @@ import {
   DEFAULT_SELF_REMINDER_TEXT,
 } from '../lib/defaults';
 import { help } from '../lib/twitchBotSettingsHelp';
+import { AccountBalanceTab } from './AccountBalanceTab';
 
 const { Text } = Typography;
 
@@ -46,8 +53,8 @@ type ReminderFormValues = {
   selfReminderPrompt: string;
 };
 
-function parseTab(raw: string | null): 'connection' | 'llm' | 'behavior' {
-  if (raw === 'llm' || raw === 'behavior') {
+function parseTab(raw: string | null): 'connection' | 'llm' | 'behavior' | 'account' {
+  if (raw === 'llm' || raw === 'behavior' || raw === 'account') {
     return raw;
   }
   return 'connection';
@@ -72,6 +79,11 @@ function formatFetchedAt(value: string | null | undefined): string {
 
 function saveErrorText(error: unknown): string {
   return error instanceof Error ? error.message : 'Произошла ошибка.';
+}
+
+function formatRoundedUsd(value: string): string {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? `${numeric.toFixed(2)} USD` : `${value} USD`;
 }
 
 function normalizeSelfReminderMode(
@@ -116,6 +128,9 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
   const [actionLoading, setActionLoading] = useState(false);
   const [promptSaving, setPromptSaving] = useState(false);
   const [reminderSaving, setReminderSaving] = useState(false);
+  const [balanceSummary, setBalanceSummary] = useState<UserBalanceSummary | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(true);
+  const [balanceError, setBalanceError] = useState<string | null>(null);
   const [promptForm] = Form.useForm<{ prompt: string }>();
   const [reminderForm] = Form.useForm<ReminderFormValues>();
 
@@ -130,6 +145,21 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
     });
     reminderForm.setFieldsValue(getReminderFormValues(next));
   }, [promptForm, reminderForm]);
+
+  const loadBalance = useCallback(async (params: UserBalanceQuery) => {
+    setBalanceLoading(true);
+    setBalanceError(null);
+    try {
+      const next = await getCurrentUserBalance(params);
+      setBalanceSummary(next);
+    } catch (error) {
+      setBalanceError(
+        error instanceof Error ? error.message : 'Не удалось загрузить баланс.',
+      );
+    } finally {
+      setBalanceLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -154,6 +184,10 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
       cancelled = true;
     };
   }, [refresh]);
+
+  useEffect(() => {
+    void loadBalance({ page: 1, pageSize: 20 });
+  }, [loadBalance]);
 
   const onTabChange = (key: string) => {
     const nextKey = parseTab(key);
@@ -263,9 +297,20 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
               />
             ) : null}
             <div>
-              <Typography.Title level={4} style={{ margin: 0 }}>
-                {user.displayName}
-              </Typography.Title>
+              <Space align="center" size={8} wrap>
+                <Typography.Title level={4} style={{ margin: 0 }}>
+                  {user.displayName}
+                </Typography.Title>
+                {balanceSummary ? (
+                  <Tag color={balanceSummary.balanceUsd.startsWith('-') ? 'volcano' : 'green'}>
+                    Баланс: {formatRoundedUsd(balanceSummary.balanceUsd)}
+                  </Tag>
+                ) : balanceLoading ? (
+                  <Text type="secondary">Баланс загружается…</Text>
+                ) : (
+                  <Text type="secondary">Баланс недоступен</Text>
+                )}
+              </Space>
               <Text type="secondary">{user.login}</Text>
             </div>
           </Flex>
@@ -557,6 +602,18 @@ export function TwitchBotSettings({ user, onLogout }: Props) {
                   </Form.Item>
                 </Form>
               </Card>
+            ),
+          },
+          {
+            key: 'account',
+            label: 'Счёт',
+            children: (
+              <AccountBalanceTab
+                summary={balanceSummary}
+                loading={balanceLoading}
+                error={balanceError}
+                onLoad={loadBalance}
+              />
             ),
           },
         ]}

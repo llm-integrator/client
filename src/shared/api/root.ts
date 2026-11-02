@@ -3,6 +3,8 @@ import type {
   InternalUserProfile,
   TwitchAuthStartResponse,
   TwitchBotConnectionSnapshot,
+  UserBalanceQuery,
+  UserBalanceSummary,
   UpdateAutoConnectRequest,
   UpdateSelfReminderRequest,
   UpdateUserPromptRequest,
@@ -29,6 +31,31 @@ export function getMe(): Promise<InternalUserProfile> {
 
 export function getTwitchBotState(): Promise<TwitchBotConnectionSnapshot> {
   return rootFetch<TwitchBotConnectionSnapshot>('/me/twitch-bot', {
+    method: 'GET',
+  });
+}
+
+export function getCurrentUserBalance(
+  params: UserBalanceQuery = {},
+): Promise<UserBalanceSummary> {
+  const query = new URLSearchParams();
+  if (params.page !== undefined) {
+    query.set('page', String(params.page));
+  }
+  if (params.pageSize !== undefined) {
+    query.set('pageSize', String(params.pageSize));
+  }
+  if (params.from !== undefined) {
+    query.set('from', params.from);
+  }
+  if (params.toExclusive !== undefined) {
+    query.set('toExclusive', params.toExclusive);
+  }
+  if (params.operationType !== undefined) {
+    query.set('operationType', params.operationType);
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return rootFetch<UserBalanceSummary>(`/me/balance${suffix}`, {
     method: 'GET',
   });
 }

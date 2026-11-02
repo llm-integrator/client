@@ -66,6 +66,40 @@ export interface LlmUsageCalendarMonthSummary {
   totals: LlmUsageTotals;
 }
 
+export type UserBalanceLedgerEntryType =
+  | 'manual_credit'
+  | 'llm_usage_debit'
+  | 'manual_adjustment';
+
+export type UserBalanceOperationType = 'credit' | 'debit';
+
+export interface UserBalanceLedgerEntry {
+  id: string;
+  type: UserBalanceLedgerEntryType;
+  /** Signed exact USD decimal. */
+  amountUsd: string;
+  createdAt: string;
+  comment: string | null;
+  createdByAdminId: string | null;
+}
+
+export interface UserBalanceSummary {
+  currency: 'USD';
+  balanceUsd: string;
+  entries: UserBalanceLedgerEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface UserBalanceQuery {
+  page?: number;
+  pageSize?: number;
+  from?: string;
+  toExclusive?: string;
+  operationType?: UserBalanceOperationType;
+}
+
 export interface TwitchAuthStartResponse {
   authorizeUrl: string;
 }
